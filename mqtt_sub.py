@@ -14,9 +14,6 @@ import logging
 import paho.mqtt.client as mqtt
 from subprocess import *
 
-from dweet import Dweet
-from cloud import Cloud
-
 logger = logging.getLogger("mqtt_app")
 data = {}
 
@@ -64,14 +61,6 @@ class MqttSub(threading.Thread):
         #data = {str(userdata): json.loads(paylaod)}
         client.disconnect()
 
-    def publish_data(self, data):
-        logger.debug("Sub: Publishing the data to Dweet.io")
-        dweet = Dweet.get_instance()
-        if dweet:
-            dweet.dweet(data)
-        cloud = Cloud.get_instance()
-        if cloud:
-            cloud.send_to_cloud(data)
 
     def run(self):
         global data
@@ -88,8 +77,7 @@ class MqttSub(threading.Thread):
                         client.connect(self.host, port=int(self.port), keepalive=60)
                         client.on_connect = self.on_connect
                         client.on_message = self.on_message
-                        client.loop_forever()
-                    self.publish_data(data)
+                        client.loop_forever(timeout=3)
                 except Exception as ex:
                     logger.exception("Error in subscription:%s"%str(ex))
                     break
@@ -111,7 +99,7 @@ if __name__ == "__main__":
 
     signal.signal(signal.SIGTERM, _stop_handler)
     signal.signal(signal.SIGINT, _sleep_handler)
-    m = MqttSub(True, "localhost", 1883, ["wx", "geo", "key"])
+    m = MqttSub(True, "localhost", 1883, ["wx", "geo", "buttons"])
     m.start()
     while True:
         try:
